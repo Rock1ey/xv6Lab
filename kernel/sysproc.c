@@ -76,14 +76,44 @@ sys_sleep(void)
 }
 
 
-#ifdef LAB_PGTBL
 int
 sys_pgaccess(void)
 {
   // lab pgtbl: your code here.
+  pagetable_t u_pt = myproc()->pagetable;
+  uint64 fir_addr, mask_addr;
+  int ck_size; 
+  uint32 mask = 0;
+  // 解析参数,按顺序分别对应
+  if(argaddr(0, &fir_addr) < 0)
+    return -1;
+  if(argint(1, &ck_size) < 0)
+    return -1;
+  if(argaddr(2, &mask_addr) < 0)
+    return -1;
+  if(ck_size < 0 || ck_size > 32)
+    return -1;
+
+  
+  // 得到第一个需要检测的页表的 PTE 的地址
+  pte_t* fir_pte = walk(u_pt, fir_addr, 0);
+
+  // 计算mask并将标志位复位
+  for(int i = 0; i < ck_size; i++){
+      if((fir_pte[i] & PTE_A) && (fir_pte[i] & PTE_V)){
+          mask |= (1 << i);
+          fir_pte[i] ^= PTE_A; // 复位
+      }
+  }
+
+  // 把 mask 的数据拷贝到基于用户态页表的 mask_addr 这个地址上。
+  if(copyout(u_pt, mask_addr, (char*)&mask, sizeof(uint))<0) {
+    return -1;
+  }
+
   return 0;
 }
-#endif
+
 
 uint64
 sys_kill(void)

@@ -432,3 +432,34 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+// 打印页表
+void vmprint(pagetable_t pagetable)
+{
+  printf("page table %p\n", pagetable);
+  recurse_treepage(pagetable, 0);
+}
+
+// 辅助递归
+void recurse_treepage(pagetable_t pagetable,int level)
+{
+  // 页表中共有512个PTE条目
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    // 条目有效
+    // 根据深度打印..，深度为0时为根页表
+    if(pte & PTE_V) {
+      for(int j = 0; j <= level ; j++){
+        if (j == 0)
+          printf("..");
+        else
+          printf(" ..");
+      }
+      uint64 child = PTE2PA(pte);
+      printf("%d: pte %p pa %p\n", i, pte, child);
+      // this PTE points to a lower-level page table.
+      if((pte & (PTE_R|PTE_W|PTE_X)) == 0)
+        recurse_treepage((pagetable_t)child, level + 1);
+    }     
+  } 
+}
