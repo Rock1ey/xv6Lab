@@ -5,7 +5,6 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
-
 /*
  * the kernel's page table.
  */
@@ -303,7 +302,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
+  // char *mem;
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
@@ -311,14 +310,26 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
     pa = PTE2PA(*pte);
+
+    refup(PGROUNDDOWN(pa));
+
+    // 如果可写，则标志为不可写，并标志为COW
+    if (*pte & PTE_W){
+      *pte &= (~PTE_W);
+      *pte |= PTE_COW;
+    }
+
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
+    // if((mem = kalloc()) == 0)
+    //   goto err;
+    // memmove(mem, (char*)pa, PGSIZE);
+    // 不重新分配内存，直接指向pa
+    if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
+      // kfree(mem);
+      printf("uvmcopy():can not map page\n");
       goto err;
     }
+
   }
   return 0;
 
@@ -356,6 +367,12 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
     n = PGSIZE - (dstva - va0);
     if(n > len)
       n = len;
+    if(iscowpage(pagetable, va0) == 0)
+      // if it is a cowpage, we need a new pa0 pointer to a new memory
+      // and if it is a null pointer, we need return error of -1
+      if ((pa0 = (uint64)cowalloc(pagetable, va0)) == 0)
+        return -1;
+
     memmove((void *)(pa0 + (dstva - va0)), src, n);
 
     len -= n;
@@ -432,3 +449,44 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+// // Lab5
+// int
+// iscowpage(uint64 va){
+//   struct proc* p = myproc();
+//   va = PGROUNDDOWN((uint64)va);
+//   if(va >= MAXVA)  // 要在walk之前
+//     return 0;
+//   pte_t* pte = walk(p->pagetable,va,0);
+//   if(pte == 0)
+//     return 0;
+//   if((va < p->sz)&& (*pte & PTE_COW) && (*pte & PTE_V))
+//     return 1;
+//   else
+//     return 0;
+// }
+
+
+// void
+// cowcopy(uint64 va){
+//   struct proc* p = myproc();
+//   va = PGROUNDDOWN((uint64)va);
+//   pte_t* pte = walk(p->pagetable,va,0);
+//   uint64 pa = PTE2PA(*pte);
+
+//   void* new = cowcopy_pa((void*)pa);
+//   if((uint64)new == 0){
+//     panic("cowcopy_pa err\n");
+//     exit(-1);
+//   }
+
+//   uint64 flags = (PTE_FLAGS(*pte) | PTE_W) & (~PTE_COW);
+//   uvmunmap(p->pagetable, va, 1, 0);  // 不包含kfree，因为ref--在cowcopy_pa中已经进行了
+
+//   if(mappages(p->pagetable, va, 1, (uint64)new, flags) == -1){
+//     kfree(new);
+//     panic("cow mappages failed");
+//   }
+// }
+
+
