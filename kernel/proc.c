@@ -301,6 +301,23 @@ fork(void)
       np->ofile[i] = filedup(p->ofile[i]);
   np->cwd = idup(p->cwd);
 
+  // copy mmap area
+  for (i = 0; i < 16; i++)
+  {
+    if(p->vma[i].valid)
+    {
+      np->vma[i].addr = p->vma[i].addr;
+      np->vma[i].dirtyflag = p->vma[i].dirtyflag;
+      np->vma[i].file = p->vma[i].file;
+      np->vma[i].length = p->vma[i].flags;
+      np->vma[i].flags = p->vma[i].flags;
+      np->vma[i].length = p->vma[i].length;
+      np->vma[i].prot = p->vma[i].prot;
+      np->vma[i].valid = 1;
+      filedup(np->vma[i].file);
+    }
+  }
+
   safestrcpy(np->name, p->name, sizeof(p->name));
 
   pid = np->pid;
@@ -654,3 +671,23 @@ procdump(void)
     printf("\n");
   }
 }
+
+struct vma* getvma(uint64 va)
+{
+  struct proc* proc = myproc();
+  struct vma* vma = 0;
+  for (int i = 0; i < 16; i++) {
+    if (proc->vma[i].valid == 0)
+      continue;
+ 
+    uint64 addr = proc->vma[i].addr;
+    uint64 length = proc->vma[i].length;
+    if (addr <= va && (va < (addr + length))) {
+      vma = &proc->vma[i];
+      break;
+    }
+  }
+ 
+  return vma;
+}
+

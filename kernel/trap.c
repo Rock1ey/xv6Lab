@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "fcntl.h"
 
 struct spinlock tickslock;
 uint ticks;
@@ -67,7 +68,16 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-  } else {
+  } else if (r_scause() == 15 || r_scause() == 13){ // 15 write page fault  13 read page fault
+    uint64 va = r_stval();
+    if(va >= MAXVA || (va <= PGROUNDDOWN(p->trapframe->sp) && va >= PGROUNDDOWN(p->trapframe->sp) - PGSIZE)){
+        p->killed = 1;
+    } else {
+      if (pagefault(p->pagetable, va) < 0)
+        p->killed = 1;
+    }
+  } 
+  else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     p->killed = 1;
@@ -218,3 +228,57 @@ devintr()
   }
 }
 
+
+// // only work for mmap
+// int
+// pagefault(pagetable_t pagetable, uint64 fault_va)
+// {
+//   // step 1 : check addr is in vma 
+//   struct vma* vma = getvma(fault_va);
+//   if (vma == 0)
+//     return -1;
+ 
+//   // step 2 : check permission
+//   /*
+//   #define PROT_NONE       0x0
+//   #define PROT_READ       0x1
+//   #define PROT_WRITE      0x2
+//   #define PROT_EXEC       0x4
+ 
+//   #define MAP_SHARED      0x01
+//   #define MAP_PRIVATE     0x02
+//   */
+//   if (r_scause() == 13 && (!(vma->prot & PROT_READ) || !(vma->file->readable)))
+//     return -1;    // not read permisson but excute read
+ 
+//   if (r_scause() == 15 && (!(vma->prot & PROT_WRITE) || !(vma->file->writable)))
+//     return -1;    // not write permisson but excute write
+ 
+//   // step 3 : alloc new page and map it , setup permission flag
+//   void* dst_pa = kalloc();
+//   if (dst_pa == 0){
+//     return -1;
+//   }
+//   uint8 flag = (vma->prot & PROT_READ) ? PTE_R : 0;
+//   flag = (vma->prot & PROT_WRITE) ? (flag | PTE_W) : flag;
+//   if (mappages(pagetable, PGROUNDDOWN(fault_va), PGSIZE, (uint64)dst_pa, PTE_U | PTE_X | flag) < 0){
+//     kfree(dst_pa);
+//     return -1;
+//   }
+ 
+//   // step 4 : load file content to memory
+//   uint offset = PGROUNDDOWN(fault_va) - vma->addr;
+//   vma->file->off = offset;
+ 
+//   int read = 0;
+//   if ((read = fileread(vma->file, PGROUNDDOWN(fault_va), PGSIZE)) < 0)
+//     return -1;
+ 
+//   // should clear zero
+//   if (read < PGSIZE) {
+//     uint64 pa = walkaddr(pagetable, PGROUNDDOWN(fault_va)) + read;
+//     memset((void*)pa, 0, PGSIZE - read);
+//   }
+ 
+//   return 0;
+// }
