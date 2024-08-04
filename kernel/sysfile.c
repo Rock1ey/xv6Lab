@@ -283,9 +283,7 @@ create(char *path, short type, short major, short minor)
   return ip;
 }
 
-// recursively follow the symlinks - lab9-2
-// Caller must hold ip->lock
-// and when function returned, it holds ip->lock of returned ip
+// 处理路径指向符号链接的情况，递归地跟随符号链接直到为非链接文件
 static struct inode* follow_symlink(struct inode* ip) {
   uint inums[NSYMLINK];
   int i, j;
@@ -328,11 +326,11 @@ sys_open(void)
 {
   char path[MAXPATH];
   int fd, omode;
-  struct file *f;
+  struct file  *f;
   struct inode *ip;
   int n;
 
-  if((n = argstr(0, path, MAXPATH)) < 0 || argint(1, &omode) < 0)
+  if((n = argstr(0,path, MAXPATH)) < 0 || argint(1, &omode) < 0)
     return -1;
 
   begin_op();
@@ -362,7 +360,7 @@ sys_open(void)
     return -1;
   }
 
-  // handle the symlink - lab9-2
+  // 处理符号链接
   if(ip->type == T_SYMLINK && (omode & O_NOFOLLOW) == 0) {
     if((ip = follow_symlink(ip)) == 0) {
       // 此处不用调用iunlockput()释放锁,因为在follow_symlinktest()返回失败时ip的锁在函数内已经被释放
