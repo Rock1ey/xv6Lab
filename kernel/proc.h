@@ -119,5 +119,5 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 
-  struct vma vma[16];         // virtual memory area by mmap
+  struct vma vma[16];         // mmap所创建的虚拟内存
 };

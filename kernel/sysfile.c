@@ -615,28 +615,18 @@ finish:
 int
 pagefault(pagetable_t pagetable, uint64 fault_va)
 {
-  // step 1 : check addr is in vma 
+  // check addr is in vma 
   struct vma* vma = getvma(fault_va);
   if (vma == 0)
     return -1;
  
-  // step 2 : check permission
-  /*
-  #define PROT_NONE       0x0
-  #define PROT_READ       0x1
-  #define PROT_WRITE      0x2
-  #define PROT_EXEC       0x4
- 
-  #define MAP_SHARED      0x01
-  #define MAP_PRIVATE     0x02
-  */
   if (r_scause() == 13 && (!(vma->prot & PROT_READ) || !(vma->file->readable)))
     return -1;    // not read permisson but excute read
  
   if (r_scause() == 15 && (!(vma->prot & PROT_WRITE) || !(vma->file->writable)))
     return -1;    // not write permisson but excute write
  
-  // step 3 : alloc new page and map it , setup permission flag
+  // alloc new page and map it , setup permission flag
   void* dst_pa = kalloc();
   if (dst_pa == 0){
     return -1;
@@ -648,7 +638,7 @@ pagefault(pagetable_t pagetable, uint64 fault_va)
     return -1;
   }
  
-  // step 4 : load file content to memory
+  // load file content to memory
   uint offset = PGROUNDDOWN(fault_va) - vma->addr;
   vma->file->off = offset;
  
