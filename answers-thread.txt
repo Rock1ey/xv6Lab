@@ -1,1 +1,9 @@
-分析为什么会在多线程情况下出现丢失的键。通常这是由于多个线程同时访问和修改共享数据结构（哈希表）导致的数据竞争。
+Q：Why are there missing keys with 2 threads, but not with 1 thread? Identify a sequence of events with 2 threads that can lead to a key being missing. Submit your sequence with a short explanation in answers-thread.txt
+A：多线程运行时有很多键值丢失，这是由于并发操作导致的。
+假设有两个线程T1和T2同时调用put()：
+1.T1和T2同时计算出哈希值并定位到相同的桶。
+2.T1读取桶的当前状态。
+3.T2也读取同一个桶的当前状态。
+4.T1将新键值插入桶中，并更新桶的状态。
+5.T2将新键值插入桶中，但T2的更新基于步骤2中读取的旧状态，覆盖了T1的更新。
+6.结果导致T1插入的键值丢失。
