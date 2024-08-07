@@ -121,7 +121,7 @@ uint64 sys_sigalarm(void) {
     if (argint(0, &interval) < 0 || argaddr(1, &handler) < 0 || interval < 0) {
         return -1;
     }
-    // lab4-3
+
     p = myproc();
     p->interval = interval;
     p->handler = handler;

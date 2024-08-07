@@ -134,7 +134,7 @@ printfinit(void)
   pr.locking = 1;
 }
 
-// print the return address - lab4-2
+// print the return address 
 void backtrace() {
     uint64 fp = r_fp();    // 获取当前栈帧
     uint64 top = PGROUNDUP(fp);    // 获取用户栈最高地址
