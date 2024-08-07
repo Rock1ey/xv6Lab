@@ -1,5 +1,7 @@
-可以加速fork()，通过在struct usyscall中添加一个parent数据，以供child们需要的时候在用户态直接使用USYSCALL页面调用，而不用切换到内核态
+Q：Which other xv6 system call(s) could be made faster using this shared page? Explain how.
+A：可以加速fork()，通过在struct usyscall中添加一个指向父进程的指针，以供子进程们需要的时候在用户态直接使用USYSCALL页面调用，而不用切换到内核态。
 
-程序在用户态运行时是不能读/写page1（即guard page）的，它本身就是用来保护page2即（stack page）不被用户访问
+Q：Explain the output of vmprint in terms of Fig 3-4 from the text. What does page 0 contain? What is in page 2? When running in user mode, could the process read/write the memory mapped by page 1? What does the third to last page contain?
+A：程序在用户态运行时是不能读/写page1（即guard page）的，它本身就是用来保护page2即（stack page）不被用户访问
 
 

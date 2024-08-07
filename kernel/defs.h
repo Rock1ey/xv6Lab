@@ -171,7 +171,7 @@ int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
 void            vmprint(pagetable_t);
-void            recurse_treepage(pagetable_t,int);
+void            vmprint_walk(pagetable_t,int);
 pte_t *         walk(pagetable_t pagetable, uint64 va, int alloc);
 
 // plic.c

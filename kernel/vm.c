@@ -437,11 +437,11 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 void vmprint(pagetable_t pagetable)
 {
   printf("page table %p\n", pagetable);
-  recurse_treepage(pagetable, 0);
+  vmprint_walk(pagetable, 0);
 }
 
 // 辅助递归
-void recurse_treepage(pagetable_t pagetable,int level)
+void vmprint_walk(pagetable_t pagetable,int level)
 {
   // 页表中共有512个PTE条目
   for(int i = 0; i < 512; i++){
@@ -459,7 +459,7 @@ void recurse_treepage(pagetable_t pagetable,int level)
       printf("%d: pte %p pa %p\n", i, pte, child);
       // this PTE points to a lower-level page table.
       if((pte & (PTE_R|PTE_W|PTE_X)) == 0)
-        recurse_treepage((pagetable_t)child, level + 1);
+        vmprint_walk((pagetable_t)child, level + 1);
     }     
   } 
 }
